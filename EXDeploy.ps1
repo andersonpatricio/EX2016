@@ -1,6 +1,5 @@
 #Defaul location
-$DefaultPath = "\\catorex01\exutil$"
-
+$SourceInstall = "\\catorex01\exutil$"
 clear
 Write-host "Exchange Deployment Tool" -ForegroundColor Yellow
 Write-Host
@@ -8,7 +7,7 @@ Write-host "1 - Exchange 2016 CU3 - Download"
 write-host "2 - Unified Communications Managed API 4.0 Runtime - Download"
 write-host "3 - Exchange Requirements with restart"
 write-host "4 - Exchange 2013 installation"
-write-host "5 - OOS - Prequisites
+write-host "5 - OOS - Prequisites"
 write-host
 Write-Host 0 - Operator or Exit
 write-host
@@ -21,11 +20,9 @@ If (Test-Path $vPath) {} Else{New-Item -Path C:\Temp -ItemType Directory}
 If ($opt -eq 1)
     {
     write-host
-    write-host "Exchange 2013 CU13 - Download"
-    $source = "https://download.microsoft.com/download/7/4/9/74981C3B-0D3C-4068-8272-22358F78305F/Exchange2013-x64-cu13.exe"
-    $destination = "c:\Temp\EX2013-cu13.exe"
-    Invoke-WebRequest $source -OutFile $destination    
-    C:\Temp\EX2013-cu13.exe /extract:C:\EX2013
+    write-host "Exchange 2013 CU13 - Copy from the Source.."
+    new-item C:\temp\EX2016 -ItemType Directory
+    Copy-Item $SourceInstall C:\Temp\EX2016\
     write-host
     }
 
@@ -47,8 +44,8 @@ If ($opt -eq 3)
     {
     write-host
     write-host "Exchange Requirements with restart"
-    Install-WindowsFeature AS-HTTP-Activation, Desktop-Experience, NET-Framework-45-Features, RPC-over-HTTP-proxy, RSAT-Clustering, RSAT-Clustering-CmdInterface, RSAT-Clustering-Mgmt, RSAT-Clustering-PowerShell, Web-Mgmt-Console, WAS-Process-Model, Web-Asp-Net45, Web-Basic-Auth, Web-Client-Auth, Web-Digest-Auth, Web-Dir-Browsing, Web-Dyn-Compression, Web-Http-Errors, Web-Http-Logging, Web-Http-Redirect, Web-Http-Tracing, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Lgcy-Mgmt-Console, Web-Metabase, Web-Mgmt-Console, Web-Mgmt-Service, Web-Net-Ext45, Web-Request-Monitor, Web-Server, Web-Stat-Compression, Web-Static-Content, Web-Windows-Auth, Web-WMI, Windows-Identity-Foundation, RSAT-ADDS, telnet-client
-    Restart-Server    
+    Install-WindowsFeature NET-Framework-45-Features, RPC-over-HTTP-proxy, RSAT-Clustering, RSAT-Clustering-CmdInterface, RSAT-Clustering-Mgmt, RSAT-Clustering-PowerShell, Web-Mgmt-Console, WAS-Process-Model, Web-Asp-Net45, Web-Basic-Auth, Web-Client-Auth, Web-Digest-Auth, Web-Dir-Browsing, Web-Dyn-Compression, Web-Http-Errors, Web-Http-Logging, Web-Http-Redirect, Web-Http-Tracing, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Lgcy-Mgmt-Console, Web-Metabase, Web-Mgmt-Console, Web-Mgmt-Service, Web-Net-Ext45, Web-Request-Monitor, Web-Server, Web-Stat-Compression, Web-Static-Content, Web-Windows-Auth, Web-WMI, Windows-Identity-Foundation, RSAT-ADDS, Telnet-Client
+    #Restart-Computer -Force    
     write-host
     }
 
