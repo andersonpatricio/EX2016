@@ -151,6 +151,22 @@ If ($opt -eq 34)
     write-host
     }
 
+If ($opt -eq 35)
+    {
+    write-host
+    write-host "Message Tracking.." $vhost
+    Set-TransportService $vhost -MessageTrackingLogEnabled $True -MessageTrackingLogMaxFileSize 5MB -MessageTrackingLogMaxDirectorySize 30GB -MessageTrackingLogSubjectLoggingEnabled $True -MessageTrackingLogMaxAge 60.00:00:00
+    Get-TransportService $vhost | fl MessageTrackingLogEnabled,MessageTrackingLogMaxFileSize,MessageTrackingLogMaxDirectorySize,MessageTrackingLogSubjectLoggingEnabled,MessageTrackingLogMaxAge
+    write-host
+    }
+
+If ($opt -eq 36)
+    {
+    write-host
+    write-host "OWA ..." $vhost
+    Set-OWAVirtualDirectdory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
+    write-host
+    }
 If ($opt -eq 0)
     {
     write-host
