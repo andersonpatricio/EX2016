@@ -1,5 +1,8 @@
-#Defaul location
+#Defaul variables
+$vhost = hostname
 $SourceInstall = "\\catorex01\exutil$"
+$vinfo = import-csv C:\Temp\customer.info
+
 clear
 Write-host "Exchange Deployment Tool" -ForegroundColor Yellow
 Write-Host
@@ -15,10 +18,14 @@ write-host
 write-host ".:. Office Online Server" -foregroundcolor green
 write-host "20 - OOS - Prequisites"
 write-host
-write-host ".:. Exchange Server Settings" -foregroundcolor green
+write-host ".:. Exchange Server Settings (Requires Exchange Management Shell)" -foregroundcolor green
 Write-host "30 - Configure Web Services"
-write-host "31 - Configure Outlook Web App"
-write-host "32 - xx"
+write-host "31 - Autodiscover"
+write-host "32 - License"
+write-host "33 - Exchange Certificate"
+write-host "34 - Outlook Settings"
+write-host "35 - Message Tracking Settings"
+write-host "36 - OWA Settings"
 write-host 
 write-host
 Write-Host 0 - Operator or Exit
@@ -46,6 +53,12 @@ If ($opt -eq 1)
 		        Get-netadapter Replication01 | Set-DNSClient -RegisterThisConnectionAddress:$False
 		        Get-netadapter Replication02 | Set-DNSClient -RegisterThisConnectionAddress:$False
 		        wmic /interactive:off nicconfig where tcpipnetbiosoptions=0 call SetTcpipNetbios 2
+                Disable-NetAdapterBinding Replication01 -ComponentID ms_server
+                Disable-NetAdapterBinding Replication01 -ComponentID ms_client
+                Disable-NetAdapterBinding Replication01 -ComponentID ms_pacer
+                Disable-NetAdapterBinding Replication02 -ComponentID ms_server
+                Disable-NetAdapterBinding Replication02 -ComponentID ms_client
+                Disable-NetAdapterBinding Replication02 -ComponentID ms_pacer
 		        write-host "all good!"
 	        }
     }
@@ -86,6 +99,57 @@ If ($opt -eq 20)
     write-host
     }
 
+#Exchange Settings...
+
+If ($opt -eq 30)
+    {
+        Set-ECPVirtualDirectory "$vhost\ECP (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/ecp") -ExternalURL ("https://" + ($vinfo).URL + "/ecp")
+        Set-WebServicesVirtualDirectory "$vhost\EWS (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/EWS/Exchange.asmx") -ExternalURL ("https://" + ($vinfo).URL + "/EWS/Exchange.asmx")
+        Set-ActiveSyncVirtualDirectory "$vhost\Microsoft-Server-ActiveSync (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/Microsoft-Server-ActiveSync") -ExternalURL ("https://" + ($vinfo).URL + "/Microsoft-Server-ActiveSync")
+        Set-OABVirtualDirectory "$vhost\OAB (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/OAB") -ExternalURL ("https://" + ($vinfo).URL + "/OAB")
+        Set-OWAVirtualDirectory "$vhost\OWA (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/OWA") -ExternalURL ("https://" + ($vinfo).URL + "/OWA")
+        Set-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/powershell") -ExternalURL ("https://" + ($vinfo).URL + "/powershell")
+        #Ouput
+        Write-Host "New settings.."
+        Get-EcpVirtualDirectory "$vhost\ecp (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        Get-WebServicesVirtualDirectory "$vhost\ews (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        Get-ActiveSyncVirtualDirectory "$vhost\Microsoft-Server-ActiveSync (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        Get-OABVirtualDirectory "$vhost\oab (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        Get-OWAVirtualDirectory "$vhost\owa (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        Get-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+    }
+
+If ($opt -eq 31)
+    {
+        write-host
+        write-host "Autodiscover.. " $vhost
+        Set-ClientAccessService -Identity $vhost -AutoDiscoverServiceInternalUri ($vinfo).autodiscover
+        Get-ClientAccessService $vhost | Select Name,AutoDiscoverServiceInternalUri        
+    }
+If ($opt -eq 32)
+    {
+    write-host
+    write-host "Applying License on the local server.. " $vhost
+    set-exchangeserver $vhost -ProductKey ($vinfo).License
+    write-host
+    }
+
+If ($opt -eq 33)
+    {
+    write-host
+    write-host "Certificate.." $vhost
+    Import-ExchangeCertificate -Server $vhost -FileName ($SourceInstall + "\cert.pfx") -Password (ConvertTo-SecureString -String "m@nager171" -AsPlainText -Force)
+    Get-ExchangeCertificate | where-object {$_.RootCAType -eq 'ThirdParty'} | Enable-ExchangeCertificate -Services IIS
+    write-host
+    }
+If ($opt -eq 34)
+    {
+    write-host
+    write-host "Outlook.." $vhost
+    Set-OutlookAnywhere -Identity "$vhost\rpc (Default Web Site)" -InternalHostname ($vinfo).url -ExternalHostname ($vinfo).url -ExternalClientsRequireSsl $True -ExternalClientAuthenticationMethod 'NTLM' -InternalClientsRequireSsl $True
+    Get-OutlookAnywhere -Identity "$vhost\rpc (Default Web Site)" | fl Identity,InternalHostname,ExternalHostName
+    write-host
+    }
 
 If ($opt -eq 0)
     {
