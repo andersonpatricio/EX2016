@@ -173,7 +173,7 @@ If ($opt -eq 37)
     {
     write-host
     write-host "Managed Folder settings on" $vhost
-    Set-OWAVirtualDirectdory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
+    Set-MailboxServer $vhost -ManagedFolderAssistantSchedule @("Monday.1:00 AM-Monday.4:30 AM","Tuesday.1:00 AM-Tuesday.4:30 AM","Wednesday.1:00 AM-Wednesday.4:30 AM","Thursday.1:00 AM-Thursday.4:30 AM","Friday.1:00 AM-Friday.4:30 AM","Saturday.1:00 AM-Saturday.6:00 AM","Sunday.1:00 AM-Sunday.6:30 AM") -ManagedFolderWorkCycle 3.00:00:00 -ManagedFolderWorkCycleCheckPoint 1.00:00:00 
     write-host
     }
 
