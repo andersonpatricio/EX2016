@@ -26,6 +26,7 @@ write-host "33 - Exchange Certificate"
 write-host "34 - Outlook Settings"
 write-host "35 - Message Tracking Settings"
 write-host "36 - OWA Settings"
+write-host "37 - Managed Folder Settings"
 write-host 
 write-host
 Write-Host 0 - Operator or Exit
@@ -167,6 +168,15 @@ If ($opt -eq 36)
     Set-OWAVirtualDirectdory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
     write-host
     }
+
+If ($opt -eq 37)
+    {
+    write-host
+    write-host "Managed Folder settings on" $vhost
+    Set-OWAVirtualDirectdory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
+    write-host
+    }
+
 If ($opt -eq 0)
     {
     write-host
