@@ -1,7 +1,8 @@
 #Defaul variables
 $vhost = hostname
-$SourceInstall = "\\catorex01\exutil$"
-$vinfo = import-csv C:\Temp\customer.info
+$vSource = "\\catorex01\exutil$"
+$vinfo = import-csv ($vSource + "\customer.info")
+$vserver = import-csv ($vSource + "\server.info")
 
 clear
 Write-host "Exchange Deployment Tool" -ForegroundColor Yellow
@@ -13,10 +14,13 @@ Write-Host
 write-host ".:.Exchange Server 2016" -foregroundcolor green
 Write-host "10 - Exchange 2016 - Installation files.. <Copy Only>"
 write-host "11 - Exchange 2016 - OS requirements with restart"
-write-host "12 - Exchange 2016 - Deployment"
+write-host "12 - UCMA" 
+write-host "13 - Exchange 2016 - Deployment"
 write-host
 write-host ".:. Office Online Server" -foregroundcolor green
-write-host "20 - OOS - Prequisites"
+write-host "20 - OOS Prequisites"
+write-host "21 - OOS Certificate installation"
+write-host "22 - OOS Deployment"
 write-host
 write-host ".:. Exchange Server Settings (Requires Exchange Management Shell)" -foregroundcolor green
 Write-host "30 - Configure Web Services"
@@ -27,6 +31,7 @@ write-host "34 - Outlook Settings"
 write-host "35 - Message Tracking Settings"
 write-host "36 - OWA Settings"
 write-host "37 - Managed Folder Settings"
+write-host "38 - Transport Settings"
 write-host 
 write-host
 Write-Host 0 - Operator or Exit
@@ -50,15 +55,19 @@ If ($opt -eq 1)
 
         If ($vStatus -eq 1) { Write-Host "The adapters are not in compliance with the Exchange Design"}
 	        Else {
-		        Write-Host "Configuring Network Adapters..." 
-		        Get-netadapter Replication01 | Set-DNSClient -RegisterThisConnectionAddress:$False
-		        Get-netadapter Replication02 | Set-DNSClient -RegisterThisConnectionAddress:$False
+                #Defining IPs for replication networks
+                
+                New-NetIPAddress -InterfaceAlias Replication01 -IPAddress ($vserver | Where-Object {$_.Server -eQ $vhost}).NICRep01 -PrefixLength 24
+                New-NetIPAddress -InterfaceAlias Replication02 -IPAddress ($vserver | Where-Object {$_.Server -eQ $vhost}).NICRep02 -PrefixLength 24
+                Write-Host "Configuring Network Adapters..." 
+		        Get-netadapter Replication01 | Set-DnsClient -RegisterThisConnectionsAddress $false
+		        Get-netadapter Replication02 | Set-DNSClient -RegisterThisConnectionsAddress $False
 		        wmic /interactive:off nicconfig where tcpipnetbiosoptions=0 call SetTcpipNetbios 2
                 Disable-NetAdapterBinding Replication01 -ComponentID ms_server
-                Disable-NetAdapterBinding Replication01 -ComponentID ms_client
+                Disable-NetAdapterBinding Replication01 -ComponentID ms_msclient
                 Disable-NetAdapterBinding Replication01 -ComponentID ms_pacer
                 Disable-NetAdapterBinding Replication02 -ComponentID ms_server
-                Disable-NetAdapterBinding Replication02 -ComponentID ms_client
+                Disable-NetAdapterBinding Replication02 -ComponentID ms_msclient
                 Disable-NetAdapterBinding Replication02 -ComponentID ms_pacer
 		        write-host "all good!"
 	        }
@@ -69,8 +78,8 @@ If ($opt -eq 10)
     {
     write-host
     write-host "Exchange 2016 - Installation Files.. copying from the source (it may take a while..) go for a Tim's"
-    If (Test-Path "C:\temp\EX2016") {} Else{New-Item -Path C:\Temp\EX2016 -ItemType Directory}
-    Copy-Item ($SourceInstall + "\Deployment\*") C:\Temp\EX2016\ -Recurse -Force
+    If (Test-Path "C:\temp\Deployment") {} Else{New-Item -Path C:\Temp\Deployment -ItemType Directory}
+    Copy-Item ($vSource + "\Deployment\*") C:\Temp\Deployment\ -Recurse -Force
     write-host
     }
 
@@ -83,22 +92,43 @@ If ($opt -eq 11)
     Restart-Computer -Force    
     write-host
     }
-
 If ($opt -eq 12)
     {
     write-host
-    write-host "Installing ... - Exchange Server 2016"
-    c:\Temp\EX2016\Setup.exe /Mode:Install /Roles:Mailbox /MDBName:Temp01 /IAcceptExchangeServerLicenseTerms /DisableAMFiltering /InstallWindowsComponents /CustomerFeedbackEnabled:False
+    write-host "UCMA"
+	C:\Temp\Deployment\UCMARuntimeSetup.exe /q  
     write-host
     }
+
+If ($opt -eq 13)
+    {
+    write-host
+    write-host "Installing ... - Exchange Server 2016"
+    c:\Temp\Deployment\EX2016\Setup.exe /Mode:Install /Roles:Mailbox /MDBName:Temp01 /IAcceptExchangeServerLicenseTerms /DisableAMFiltering /InstallWindowsComponents /CustomerFeedbackEnabled:False
+    write-host
+    }
+
+#OOS..
 
 If ($opt -eq 20)
     {
     write-host
     write-host "Installing ... - OOS Prerequisites"
-    Install-WindowsFeature Web-Server, Web-Mgmt-Tools, Web-Mgmt-Console, Web-WebServer, Web-Common-Http, Web-Default-Doc, Web-Static-Content, Web-Performance, Web-Stat-Compression, Web-Dyn-Compression, Web-Security, Web-Filtering, Web-Windows-Auth, Web-App-Dev, Web-Net-Ext45, Web-Asp-Net45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Includes, InkandHandwritingServices, Windows-Identity-Foundation
+    Install-WindowsFeature Web-Server, Web-Mgmt-Tools, Web-Mgmt-Console, Web-WebServer, Web-Common-Http, Web-Default-Doc, Web-Static-Content, Web-Performance, Web-Stat-Compression, Web-Dyn-Compression, Web-Security, Web-Filtering, Web-Windows-Auth, Web-App-Dev, Web-Net-Ext45, Web-Asp-Net45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Includes, Windows-Identity-Foundation
+	#removed InkandHandwritingServices
     write-host
     }
+
+If ($opt -eq 21)
+    {
+    write-host
+    write-host "OOS Certificate"
+    Import-PfxCertificate -FilePath ($vSource + "\cert.pfx") cert:\localmachine\My -password (ConvertTo-SecureString -String "m@nager171" -force -AsPlainText)    
+	#removed InkandHandwritingServices
+    write-host
+    }
+
+
 
 #Exchange Settings...
 
@@ -109,7 +139,7 @@ If ($opt -eq 30)
         Set-ActiveSyncVirtualDirectory "$vhost\Microsoft-Server-ActiveSync (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/Microsoft-Server-ActiveSync") -ExternalURL ("https://" + ($vinfo).URL + "/Microsoft-Server-ActiveSync")
         Set-OABVirtualDirectory "$vhost\OAB (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/OAB") -ExternalURL ("https://" + ($vinfo).URL + "/OAB")
         Set-OWAVirtualDirectory "$vhost\OWA (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/OWA") -ExternalURL ("https://" + ($vinfo).URL + "/OWA")
-        Set-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/powershell") -ExternalURL ("https://" + ($vinfo).URL + "/powershell")
+        #Set-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" -InternalURL ("https://" + ($vinfo).URL + "/powershell") -ExternalURL ("https://" + ($vinfo).URL + "/powershell")
         #Ouput
         Write-Host "New settings.."
         Get-EcpVirtualDirectory "$vhost\ecp (Default Web Site)" | fl Identity,InternalURL,ExternalURL
@@ -117,7 +147,7 @@ If ($opt -eq 30)
         Get-ActiveSyncVirtualDirectory "$vhost\Microsoft-Server-ActiveSync (Default Web Site)" | fl Identity,InternalURL,ExternalURL
         Get-OABVirtualDirectory "$vhost\oab (Default Web Site)" | fl Identity,InternalURL,ExternalURL
         Get-OWAVirtualDirectory "$vhost\owa (Default Web Site)" | fl Identity,InternalURL,ExternalURL
-        Get-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" | fl Identity,InternalURL,ExternalURL
+        #Get-PowerShellVirtualDirectory "$vhost\PowerShell (Default Web Site)" | fl Identity,InternalURL,ExternalURL
     }
 
 If ($opt -eq 31)
@@ -139,7 +169,7 @@ If ($opt -eq 33)
     {
     write-host
     write-host "Certificate.." $vhost
-    Import-ExchangeCertificate -Server $vhost -FileName ($SourceInstall + "\cert.pfx") -Password (ConvertTo-SecureString -String "m@nager171" -AsPlainText -Force)
+    Import-ExchangeCertificate -Server $vhost -FileName ($vSource + "\cert.pfx") -Password (ConvertTo-SecureString -String "m@nager171" -AsPlainText -Force)
     Get-ExchangeCertificate | where-object {$_.RootCAType -eq 'ThirdParty'} | Enable-ExchangeCertificate -Services IIS
     write-host
     }
@@ -165,7 +195,7 @@ If ($opt -eq 36)
     {
     write-host
     write-host "OWA ..." $vhost
-    Set-OWAVirtualDirectdory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
+    Set-OWAVirtualDirectory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
     write-host
     }
 
@@ -173,8 +203,15 @@ If ($opt -eq 37)
     {
     write-host
     write-host "Managed Folder settings on" $vhost
-    Set-MailboxServer $vhost -ManagedFolderAssistantSchedule @("Monday.1:00 AM-Monday.4:30 AM","Tuesday.1:00 AM-Tuesday.4:30 AM","Wednesday.1:00 AM-Wednesday.4:30 AM","Thursday.1:00 AM-Thursday.4:30 AM","Friday.1:00 AM-Friday.4:30 AM","Saturday.1:00 AM-Saturday.6:00 AM","Sunday.1:00 AM-Sunday.6:30 AM") -ManagedFolderWorkCycle 3.00:00:00 -ManagedFolderWorkCycleCheckPoint 1.00:00:00 
+    Set-MailboxServer $vhost -ManagedFolderAssistantSchedule @("Monday.1:00 AM-Monday.4:30 AM","Tuesday.1:00 AM-Tuesday.4:30 AM","Wednesday.1:00 AM-Wednesday.4:30 AM","Thursday.1:00 AM-Thursday.4:30 AM","Friday.1:00 AM-Friday.4:30 AM","Saturday.1:00 AM-Saturday.6:00 AM","Sunday.1:00 AM-Sunday.6:30 AM")
     write-host
+    }
+
+If ($opt -eq 38)
+    {
+    write-host
+    write-host "Transport settings on" $vhost
+    Set-TransportService $vhost -MaxOutboundConnections 50 -MaxPerDomainOutboundConnections 50
     }
 
 If ($opt -eq 0)
