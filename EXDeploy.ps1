@@ -1,15 +1,18 @@
 #Defaul variables for the script
 $vhost = hostname
-$vSource = "\\catorex01\exutil$"
+$vSource = "\\catorex10\exutil$"
 $vinfo = import-csv ($vSource + "\customer.info")
 $vserver = import-csv ($vSource + "\server.info")
 
 clear
+Write-host
 Write-host "Exchange Deployment Tool" -ForegroundColor Yellow
 Write-Host
 write-host ".:. OS Settings" -foregroundcolor green
 Write-host "1 - Network adjustments"
-Write-host "2 - PageFile "
+Write-host "2 - Time Zone"
+Write-Host "3 - Pagefile configuration"
+Write-host "4 - .Net fix (temporary solution" 
 Write-Host
 write-host ".:.Exchange Server 2016" -foregroundcolor green
 Write-host "10 - Exchange 2016 - Installation files.. <Copy Only>"
@@ -32,6 +35,7 @@ write-host "35 - Message Tracking Settings"
 write-host "36 - OWA Settings"
 write-host "37 - Managed Folder Settings"
 write-host "38 - Transport Settings"
+write-host "39 - Configure Hybrid Cloud Settings"
 write-host 
 write-host
 Write-Host 0 - Operator or Exit
@@ -73,6 +77,26 @@ If ($opt -eq 1)
 	        }
     }
 
+If ($opt -eq 2)
+    {
+        write-host "Current Time Zone on server: " ($vserver | Where-Object {$_.Server -eq $vhost}).TimeZone
+        tzutil /s ($vserver | Where-Object {$_.Server -eq $vhost}).TimeZone
+        Write-Host "New Time Zone configured based on the design:" 
+        tzutil /g
+    }
+
+If ($opt -eq 3)
+    {
+        Write-host "Configuring the pagefile based on the design.. restart required afterwards"
+        Set-CimInstance -Query "SELECT * FROM Win32_computersystem" -Property @{AutomaticManagedPageFile="False"}
+        Set-CimInstance -Query "SELECT * FROM Win32_PageFileSetting" -Property @{InitialSize=32768;MaximumSize=32778}
+    }
+
+If ($opt -eq 4)
+    {
+        write-host "Configuring Time zone.." ($vserver | Where-Object {$_.Server -eq $vhost}).TimeZone
+        C:\windows\Microsoft.net\Framework64\v4.0.30319\ngen.exe update
+    }
 
 If ($opt -eq 10)
     {
@@ -95,8 +119,9 @@ If ($opt -eq 11)
 If ($opt -eq 12)
     {
     write-host
-    write-host "UCMA"
+    write-host "Installing UCMA.."
 	C:\Temp\Deployment\UCMARuntimeSetup.exe /q  
+    Restart-Computer -Force
     write-host
     }
 
@@ -125,6 +150,15 @@ If ($opt -eq 21)
     write-host "OOS Certificate"
     Import-PfxCertificate -FilePath ($vSource + "\cert.pfx") cert:\localmachine\My -password (ConvertTo-SecureString -String "m@nager171" -force -AsPlainText)    
 	#removed InkandHandwritingServices
+    write-host
+    }
+
+
+If ($opt -eq 22)
+    {
+    write-host
+    write-host "OOS Deployment"
+    C:\temp\Deployment\oos\setup.exe /config ($vSource + "\silentOOS.xml")
     write-host
     }
 
@@ -162,6 +196,8 @@ If ($opt -eq 32)
     write-host
     write-host "Applying License on the local server.. " $vhost
     set-exchangeserver $vhost -ProductKey ($vinfo).License
+    write-host "- Settings configured based on the design.."
+    Get-ExchangeServer | Select 
     write-host
     }
 
@@ -171,6 +207,8 @@ If ($opt -eq 33)
     write-host "Certificate.." $vhost
     Import-ExchangeCertificate -Server $vhost -FileName ($vSource + "\cert.pfx") -Password (ConvertTo-SecureString -String "m@nager171" -AsPlainText -Force)
     Get-ExchangeCertificate | where-object {$_.RootCAType -eq 'ThirdParty'} | Enable-ExchangeCertificate -Services IIS
+    write-host "- Settings configured based on the design.."
+    Get-ExchangeCertificate
     write-host
     }
 If ($opt -eq 34)
@@ -178,6 +216,7 @@ If ($opt -eq 34)
     write-host
     write-host "Outlook.." $vhost
     Set-OutlookAnywhere -Identity "$vhost\rpc (Default Web Site)" -InternalHostname ($vinfo).url -ExternalHostname ($vinfo).url -ExternalClientsRequireSsl $True -ExternalClientAuthenticationMethod 'NTLM' -InternalClientsRequireSsl $True
+    write-host "- Settings configured based on the design.."
     Get-OutlookAnywhere -Identity "$vhost\rpc (Default Web Site)" | fl Identity,InternalHostname,ExternalHostName
     write-host
     }
@@ -187,6 +226,7 @@ If ($opt -eq 35)
     write-host
     write-host "Message Tracking.." $vhost
     Set-TransportService $vhost -MessageTrackingLogEnabled $True -MessageTrackingLogMaxFileSize 5MB -MessageTrackingLogMaxDirectorySize 30GB -MessageTrackingLogSubjectLoggingEnabled $True -MessageTrackingLogMaxAge 60.00:00:00
+    write-host "- Settings configured based on the design.." 
     Get-TransportService $vhost | fl MessageTrackingLogEnabled,MessageTrackingLogMaxFileSize,MessageTrackingLogMaxDirectorySize,MessageTrackingLogSubjectLoggingEnabled,MessageTrackingLogMaxAge
     write-host
     }
@@ -194,8 +234,10 @@ If ($opt -eq 35)
 If ($opt -eq 36)
     {
     write-host
-    write-host "OWA ..." $vhost
-    Set-OWAVirtualDirectory "$vhost\OWA*" -LogonPagePublicPrivateSelectionEnabled $True
+    write-host "Configuring OWA.." $vhost
+    Set-OWAVirtualDirectory "$vhost\owa (Default Web Site)" -LogonPagePublicPrivateSelectionEnabled $True
+    write-host "- Settings configured based on the design.." 
+    Get-OWAVirtualDirectory "$vhost\owa (Default Web Site)" | Select Identity,LogonPagePublic*
     write-host
     }
 
@@ -212,6 +254,13 @@ If ($opt -eq 38)
     write-host
     write-host "Transport settings on" $vhost
     Set-TransportService $vhost -MaxOutboundConnections 50 -MaxPerDomainOutboundConnections 50
+    }
+
+If ($opt -eq 39)
+    {
+    write-host
+    write-host "Configuring Hybrid Cloud Settings.. " $vhost
+    Set-WebServicesVirtualDirectory "$vhost\EWS (Default Web Site)" -MRSProxyEnabled $True
     }
 
 If ($opt -eq 0)
