@@ -12,7 +12,7 @@ $vMailbox = $args[0]
 $vProfile = $args[1].ToUpper()
 $DebugMode = $args[2]
 $vDebug = " -WarningAction SilentlyContinue"
-$OfficialPath = "\\apatricio.local\NETLOGON\EXMailboxProfile.info"
+$OfficialPath = "\\catorex10\exutil$\EXMailboxProfile.info"
 
 #Initial Validation...
 $tPath = Test-Path $OfficialPath
@@ -26,7 +26,7 @@ If ($tPath -eq $True) {
 
 If (($args[0] -eq $null ) -or ($args[1] -eq $null)){
 	Write-Warning "You need to provide a mailbox and profile."
-	Write-Warning "Example: Assign-Profile.ps1 Anderson.Patricio Gold"
+	Write-Warning "Example: Assign-Profile.ps1 mailbox.name Gold"
 	Break; 
 }
 If (((Get-Mailbox -Identity $vMailbox -ErrorAction 'SilentlyContinue').IsValid) -eq $null) {

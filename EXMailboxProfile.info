@@ -1,6 +1,0 @@
-RuleID,RuleName,Rulecmdlet,RuleAttribute,GoldValue,SilverValue,BronzeValue
-0,MAPI Feature,Set-CASMailbox,MAPIEnabled,$True,$True,$False
-1,Single Item Recovery,Set-Mailbox,SingleItemRecovery,$True,$True,$True
-2,Retention Policy,Set-Mailbox,RetentionPolicy,Gold-RP,Silver-RP,Bronze-RP
-3,OWA Policy,Set-CASMailbox,OWAMailboxPolicy,Gold-OWAPolicy,Silver-OWAPolicy,Bronze-OWAPolicy
-4,Mailbox Audit,Set-Mailbox,AuditEnabled,$True,$False,$False
