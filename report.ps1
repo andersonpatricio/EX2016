@@ -1,9 +1,8 @@
 ﻿#
 # UCBox.ca 
-# Usage report.ps1 -OrganizationUnit domain.local/OU <debug>
+# Usage report.ps1 domain.local/OU
 # Where:
 #   <domain> 
-# 	<debug> to enable debug just use $True
 #
 
 #Initial Settings
@@ -11,6 +10,7 @@ $vOU = $args[0]
 $DebugMode = $args[2]
 $vDebug = " -WarningAction SilentlyContinue"
 $OfficialPath = "\\catorex10\exutil$\EXMailboxProfile.info"
+$vinmates = New-Object System.Collections.ArrayList
 
 #Initial Validation...
 $tPath = Test-Path $OfficialPath
@@ -21,19 +21,7 @@ If ($tPath -eq $True) {
 	Break;
 }
 
-
-If ($DebugMode -eq $True) {
-	Write-Host "==General Settings======="
-	Write-Host "Mailbox Name......:"  $vMailbox
-	Write-Host "Current Profile...:"  $vProfile
-	$vDebug = ""
-	Write-Host "==Cmdlet Actions======="
-} Else {
-	Write-Host "Checking... it may take a while, go for a Starbucks! " $vMailbox
-}
-
-$vinmates = New-Object System.Collections.ArrayList
-
+Write-Host "Checking... it may take a while, go for a Starbucks! " $vMailbox
 
 if ($vOU -ne $null) 
     { 
@@ -73,4 +61,28 @@ Write-host
 Write-host "For detailed information, you can run report.ps1 -details <mailbox>" 
 Write-host
 
-$vinmates | fl | Export-csv -Path "C:\Users\Administrator.MONTREALLAB.000\Documents\GitHub\EX2016\users.csv"
+
+If ($vinmates -ne $null) 
+        {
+            ForEach ($tmbx in $vinmates) 
+	            {
+                Write-host
+                write-host '--Mailbox...:' $tmbx.Name -ForegroundColor Yellow
+                if ($tmbx.CustomAttribute6 -eq $null) {Write-Host "No Profile associated to this mailbox"}
+                $tValid=$False
+                ForEach ($tFile in $vFile)
+                    {
+	                Switch ((get-mailbox $tmbx).CustomAttribute6)
+		                {
+			                "GOLD"		{ $tValue=$tFile.GOLDValue;$tValid=$True}
+			                "SILVER"  	{ $tValue=$tFile.SILVERValue; $tValid=$True}
+			                "BRONZE"  	{ $tValue=$tFile.BRONZEValue; $tValid=$True}
+			                default 	{ Break}
+		                }
+	                If ($tValid -eq $True) 
+                        {
+                        Invoke-Expression ("if ((" + $tfile.Checkcmdlet + " " + $tmbx + ")." + $tfile.RuleAttribute +" -ne '" + $tvalue +"') { write-host 'Rule Name...:'" + $tfile.RuleName + " ' - Status: Not Compliant!'}")
+	                    }
+                    }
+                }
+        }
