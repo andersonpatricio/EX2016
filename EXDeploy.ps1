@@ -4,7 +4,7 @@ $vSource = "\\catorex01\exutil$"
 $vinfo = import-csv ($vSource + "\customer.info")
 $vserver = import-csv ($vSource + "\server.info")
 
-clear
+#clear
 Write-host
 Write-host "Exchange Deployment Tool" -ForegroundColor Yellow
 Write-Host
@@ -129,8 +129,11 @@ If ($opt -eq 13)
     {
     write-host
     write-host "Installing ... - Exchange Server 2016"
-    c:\Temp\Deployment\EX2016\Setup.exe /Mode:Install /Roles:Mailbox /MDBName:Temp01 /IAcceptExchangeServerLicenseTerms /DisableAMFiltering /InstallWindowsComponents /CustomerFeedbackEnabled:False
-    write-host
+    Mount-DiskImage "C:\Temp\Deployment\ExchangeServer2016-X64-CU4.iso"
+    $vinstall = (Get-Volume -FileSystemLabel "ExchangeServer2016-X64-CU4").DriveLetter
+    $vinstall = $vinstall +":\Setup.exe"
+    write-host $vinstall
+    [System.Diagnostics.Process]::Start("$vinstall"," /Mode:Install /Roles:Mailbox /MDBName:Temp01 /IAcceptExchangeServerLicenseTerms /DisableAMFiltering /InstallWindowsComponents /CustomerFeedbackEnabled:False")
     }
 
 #OOS..
@@ -139,8 +142,7 @@ If ($opt -eq 20)
     {
     write-host
     write-host "Installing ... - OOS Prerequisites"
-    Install-WindowsFeature Web-Server, Web-Mgmt-Tools, Web-Mgmt-Console, Web-WebServer, Web-Common-Http, Web-Default-Doc, Web-Static-Content, Web-Performance, Web-Stat-Compression, Web-Dyn-Compression, Web-Security, Web-Filtering, Web-Windows-Auth, Web-App-Dev, Web-Net-Ext45, Web-Asp-Net45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Includes, Windows-Identity-Foundation
-	#removed InkandHandwritingServices
+    Install-WindowsFeature Web-Server, Web-Mgmt-Tools, Web-Mgmt-Console, Web-WebServer, Web-Common-Http, Web-Default-Doc, Web-Static-Content, Web-Performance, Web-Stat-Compression, Web-Dyn-Compression, Web-Security, Web-Filtering, Web-Windows-Auth, Web-App-Dev, Web-Net-Ext45, Web-Asp-Net45, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Includes, Windows-Identity-Foundation, InkandHandwritingServices
     write-host
     }
 
@@ -149,8 +151,7 @@ If ($opt -eq 21)
     write-host
     write-host "OOS Certificate"
     Import-PfxCertificate -FilePath ($vSource + "\cert.pfx") cert:\localmachine\My -password (ConvertTo-SecureString -String "m@nager171" -force -AsPlainText)    
-	#removed InkandHandwritingServices
-    write-host
+	write-host
     }
 
 
