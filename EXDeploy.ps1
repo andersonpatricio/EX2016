@@ -1,6 +1,6 @@
 #Defaul variables for the script
 $vhost = hostname
-$vSource = "\\catorex10\exutil$"
+$vSource = "\\catorex01\exutil$"
 $vinfo = import-csv ($vSource + "\customer.info")
 $vserver = import-csv ($vSource + "\server.info")
 
