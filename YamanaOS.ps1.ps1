@@ -15,6 +15,8 @@ Write-host "6 - Startup Time"
 Write-host "7 - Server Information"
 Write-Host "8 - Power Savings" 
 write-host 
+write-host ".:. Virtualization Template (use with caution!!)" -foregroundcolor red
+write-host "695 - Sysprep (no more than 3 times per VHD/WMDK file)" -ForegroundColor DarkGray
 write-host
 Write-Host 0 - Operator or Exit
 write-host
@@ -111,7 +113,12 @@ If ($opt -eq 8)
     write-host
     }
 
-
+If ($opt -eq 695)
+    {
+    write-host
+    C:\Windows\System32\Sysprep\sysprep.exe
+    write-host
+    }
 
 
 If ($opt -eq 0)
